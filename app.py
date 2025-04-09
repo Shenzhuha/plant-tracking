@@ -23,7 +23,7 @@ def save_data(data):
     with open(DATA_FILE, 'w') as f:
         json.dump(data, f)
 
-def generate_qr_code(record_id, base_url="https://your-app.streamlit.app"):  # 替换为实际云端 URL
+def generate_qr_code(record_id, base_url="http://localhost:8501"):  # 本地测试用，部署后替换为云端 URL
     qr_url = f"{base_url}/?record_id={record_id}"
     qr = qrcode.QRCode(version=1, box_size=10, border=4)
     qr.add_data(qr_url)
@@ -122,7 +122,7 @@ def main():
                         st.markdown(f"**株高:** {record['height']} cm")
                     with col_c:
                         st.markdown("**扫描查看详情:**")
-                        qr_image = generate_qr_code(i)
+                        qr_image = generate_qr_code(i)  # 使用索引作为 record_id
                         st.image(qr_image, width=150)
 
     st.sidebar.header("数据管理")
