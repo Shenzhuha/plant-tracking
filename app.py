@@ -6,14 +6,9 @@ import json
 from base64 import b64encode
 from io import BytesIO
 import pandas as pd
-from PIL import Image
 
-# 数据存储文件
 DATA_FILE = 'plant_data.json'
-IMAGE_DIR = 'uploaded_images'
-os.makedirs(IMAGE_DIR, exist_ok=True)
 
-# 初始化数据结构
 @st.cache_resource
 def load_data():
     if not os.path.exists(DATA_FILE):
@@ -28,8 +23,7 @@ def save_data(data):
     with open(DATA_FILE, 'w') as f:
         json.dump(data, f)
 
-# 生成二维码，指向云端记录 URL
-def generate_qr_code(record_id, base_url="https://your-app.streamlit.app"):
+def generate_qr_code(record_id, base_url="https://your-app.streamlit.app"):  # 替换为实际云端 URL
     qr_url = f"{base_url}/?record_id={record_id}"
     qr = qrcode.QRCode(version=1, box_size=10, border=4)
     qr.add_data(qr_url)
@@ -39,7 +33,6 @@ def generate_qr_code(record_id, base_url="https://your-app.streamlit.app"):
     qr_img.save(buf, format="PNG")
     return buf.getvalue()
 
-# 显示单条记录详情的函数
 def show_record_detail(data, record_id):
     st.title("🌱 记录详情")
     if record_id < 0 or record_id >= len(data['records']):
@@ -50,26 +43,23 @@ def show_record_detail(data, record_id):
     st.markdown(f"**株高:** {record['height']} cm")
     st.markdown(f"**叶绿素:** {record['chlorophyll']} mg/g")
     st.markdown(f"**氮含量:** {record['nitrogen']} %")
-    if record['thermal_image']:
+    if record.get('thermal_image'):
         st.markdown("**热成像:**")
         st.markdown(f"<img src='{record['thermal_image']}' width='300'>", unsafe_allow_html=True)
-    if record['visible_image']:
+    if record.get('visible_image'):
         st.markdown("**可见光:**")
         st.markdown(f"<img src='{record['visible_image']}' width='300'>", unsafe_allow_html=True)
 
-# 主应用
 def main():
     st.set_page_config(page_title="植物数据跟踪", layout="wide")
     data = load_data()
 
-    # 检查 URL 参数
     query_params = st.query_params
     record_id = query_params.get("record_id")
     if record_id:
         show_record_detail(data, int(record_id[0]))
         return
 
-    # 主界面
     st.title("🌱 植物数据跟踪系统")
     st.write(f"**最后更新:** {data['last_updated']}")
     col1, col2 = st.columns([1, 2])
@@ -91,19 +81,12 @@ def main():
                 else:
                     thermal_image_data = None
                     visible_image_data = None
-                    date_str = date.strftime("%Y%m%d")
                     if thermal_image:
                         thermal_image_bytes = thermal_image.getvalue()
                         thermal_image_data = f"data:image/{thermal_image.type.split('/')[-1]};base64,{b64encode(thermal_image_bytes).decode('utf-8')}"
-                        filename = f"thermal_{date_str}.{thermal_image.type.split('/')[-1]}"
-                        with open(os.path.join(IMAGE_DIR, filename), 'wb') as f:
-                            f.write(thermal_image_bytes)
                     if visible_image:
                         visible_image_bytes = visible_image.getvalue()
                         visible_image_data = f"data:image/{visible_image.type.split('/')[-1]};base64,{b64encode(visible_image_bytes).decode('utf-8')}"
-                        filename = f"visible_{date_str}.{visible_image.type.split('/')[-1]}"
-                        with open(os.path.join(IMAGE_DIR, filename), 'wb') as f:
-                            f.write(visible_image_bytes)
                     new_record = {
                         "timestamp": date.strftime("%Y-%m-%d"),
                         "thermal_image": thermal_image_data,
@@ -127,10 +110,10 @@ def main():
                 with st.expander(f"记录 {record['timestamp']}"):
                     col_a, col_b, col_c = st.columns([1, 1, 1])
                     with col_a:
-                        if record['thermal_image']:
+                        if record.get('thermal_image'):
                             st.markdown("**热成像:**")
                             st.markdown(f"<img src='{record['thermal_image']}' width='200'>", unsafe_allow_html=True)
-                        if record['visible_image']:
+                        if record.get('visible_image'):
                             st.markdown("**可见光:**")
                             st.markdown(f"<img src='{record['visible_image']}' width='200'>", unsafe_allow_html=True)
                     with col_b:
@@ -139,7 +122,7 @@ def main():
                         st.markdown(f"**株高:** {record['height']} cm")
                     with col_c:
                         st.markdown("**扫描查看详情:**")
-                        qr_image = generate_qr_code(i)  # 使用记录索引作为 ID
+                        qr_image = generate_qr_code(i)
                         st.image(qr_image, width=150)
 
     st.sidebar.header("数据管理")
