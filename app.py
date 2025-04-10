@@ -1,6 +1,6 @@
 import streamlit as st
 import qrcode
-import os  # 添加这一行
+import os
 from datetime import datetime
 import json
 from base64 import b64encode
@@ -23,7 +23,8 @@ def save_data(data):
     with open(DATA_FILE, 'w') as f:
         json.dump(data, f)
 
-def generate_qr_code(record_id, base_url="https://your-app.onrender.com"):  # 替换为实际 Render URL
+def generate_qr_code(record_id, base_url="https://your-app.onrender.com"):  # 请替换为实际部署的 URL
+    # 确保 URL 格式正确，record_id 是整数
     qr_url = f"{base_url}/?record_id={record_id}"
     qr = qrcode.QRCode(version=1, box_size=10, border=4)
     qr.add_data(qr_url)
@@ -35,29 +36,35 @@ def generate_qr_code(record_id, base_url="https://your-app.onrender.com"):  # �
 
 def show_record_detail(data, record_id):
     st.title("🌱 记录详情")
-    if record_id < 0 or record_id >= len(data['records']):
-        st.error("无效的记录 ID")
-        return
-    record = data['records'][record_id]
-    st.markdown(f"**日期:** {record['timestamp']}")
-    st.markdown(f"**株高:** {record['height']} cm")
-    st.markdown(f"**叶绿素:** {record['chlorophyll']} mg/g")
-    st.markdown(f"**氮含量:** {record['nitrogen']} %")
-    if record.get('thermal_image'):
-        st.markdown("**热成像:**")
-        st.markdown(f"<img src='{record['thermal_image']}' width='300'>", unsafe_allow_html=True)
-    if record.get('visible_image'):
-        st.markdown("**可见光:**")
-        st.markdown(f"<img src='{record['visible_image']}' width='300'>", unsafe_allow_html=True)
+    try:
+        record_id = int(record_id)  # 确保 record_id 是整数
+        if record_id < 0 or record_id >= len(data['records']):
+            st.error("无效的记录 ID")
+            return
+        record = data['records'][record_id]
+        st.markdown(f"**日期:** {record['timestamp']}")
+        st.markdown(f"**株高:** {record['height']} cm")
+        st.markdown(f"**叶绿素:** {record['chlorophyll']} mg/g")
+        st.markdown(f"**氮含量:** {record['nitrogen']} %")
+        if record.get('thermal_image'):
+            st.markdown("**热成像:**")
+            st.markdown(f"<img src='{record['thermal_image']}' width='300'>", unsafe_allow_html=True)
+        if record.get('visible_image'):
+            st.markdown("**可见光:**")
+            st.markdown(f"<img src='{record['visible_image']}' width='300'>", unsafe_allow_html=True)
+    except (ValueError, TypeError):
+        st.error("记录 ID 格式错误")
 
 def main():
     st.set_page_config(page_title="植物数据跟踪", layout="wide")
     data = load_data()
 
+    # 获取查询参数
     query_params = st.query_params
-    record_id = query_params.get("record_id")
+    record_id = query_params.get("record_id")  # Streamlit 1.32+ 使用 get 方法
     if record_id:
-        show_record_detail(data, int(record_id[0]))
+        # record_id 可能是列表，取第一个值并转换为整数
+        show_record_detail(data, record_id[0] if isinstance(record_id, list) else record_id)
         return
 
     st.title("🌱 植物数据跟踪系统")
